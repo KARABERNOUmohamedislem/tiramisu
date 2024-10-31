@@ -112,6 +112,18 @@ protected:
      */
     int beam_size;
     
+    /**
+     * The pipe on which to write information about the program and the schedules to prompt the LLM.
+     */
+     
+    FILE *llm_write;
+    
+    /**
+     * The pipe on which to the LLM response.
+     */
+     
+    FILE *llm_read;
+    
     
 public:
     beam_search(int beam_size, evaluation_function *eval_func = nullptr, schedules_generator *scheds_gen = nullptr)
@@ -121,6 +133,16 @@ public:
 
     virtual void search(syntax_tree& ast);
 
+    /**
+     * LLM utils functions:
+     * Setup the pipeline with the script that prompts the LLM
+     */
+    virtual void setup_llm_pipeline();
+
+    /**
+     * Prompt the LLM and get the indices of candidates to keep in the beam
+     */
+    virtual std::vector<int> prompt_llm(std::string initial_program_ast, std::string computations_buffers_json, std::vector<syntax_tree*> candidates);
     /**
      * Searches for the best schedule and saves the explored schedules and their execution time
      *

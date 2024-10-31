@@ -3,6 +3,7 @@
 #include <algorithm> //for searching in comps list
 #include <iostream>
 #include <string.h>
+#include <regex>
 #include <tiramisu/auto_scheduler/search_method.h>
 
 
@@ -1932,6 +1933,30 @@ void syntax_tree::print_ast() const
 	    root->print_node();
 }
 
+std::string syntax_tree::get_ast_str() const
+{
+    std::string ast_str = "";
+    for (ast_node *root : roots)
+	    ast_str += root->get_node_str();
+    
+    return ast_str;
+}
+
+std::string syntax_tree::get_computations_buffers_mapping_json() const
+{
+    std::string computations_buffers_mapping_json = "{";
+    std::vector<tiramisu::computation*> all_computations = this->get_computations();
+    for (const auto& p:this->buffers_mapping)
+    {
+        computations_buffers_mapping_json += "\"" + p.first + "\": "; // computation or input name
+        computations_buffers_mapping_json += "\"" + p.second + "\","; // buffer_name name
+    }
+    computations_buffers_mapping_json.pop_back();
+    
+    computations_buffers_mapping_json += "}";
+    return computations_buffers_mapping_json + "\n";
+}
+
 void syntax_tree::print_new_optims() const
 {
     for (optimization_info optim: new_optims)
@@ -1975,6 +2000,46 @@ void ast_node::print_node() const
 
     for (ast_node *child : children)
         child->print_node();
+}
+
+std::string ast_node::get_node_str() const
+{
+    std::string node_str = "";
+    std::regex pattern(R"(\s*->\s*([a-zA-Z_]+\[[^\]]+\]))"); // Regex to capture "b_A[i, j]"" from "{ A_out[k, j, i] -> b_A[i, j] }"
+    std::smatch matches;
+    
+    if (name.compare("dummy_iter")!=0) // Avoid printing dummy iterators.
+    {
+        for (int i = 0; i < depth; ++i)
+            node_str += "\t";
+        if(check_if_number(up_bound)){
+            node_str += "L" + std::to_string(this->depth) + ": " + "for(" + name + " = " + low_bound + "; " + name + " < " + std::to_string(stoi(up_bound) + 1) + "; " + name + "++)";
+        }else{
+            node_str += "L" + std::to_string(this->depth) + ": " + "for(" + name + " = " + low_bound + "; " + name + " < " + up_bound + "+1; " + name + "++)";
+        }
+
+        if (parallelized)
+            node_str += " | P";
+
+        if (vectorized)
+            node_str += " | V";
+
+        node_str += "$"; // Special caracter ($) to replace it later with \n
+    }
+    
+    for (computation_info const& comp_info : computations) 
+    {
+        for (int i = 0; i < depth + 1; ++i)
+            node_str += "\t";
+         
+        if (std::regex_search(comp_info.write_access_relation, matches, pattern)) {
+            node_str += comp_info.comp_ptr->get_name() + " : " + matches[1].str() + " = " + comp_info.comp_ptr->get_expr().to_str() + ";$"; // Special caracter ($) to replace it later with \n
+        }
+    }
+
+    for (ast_node *child : children)
+        node_str += child->get_node_str();
+    return node_str;
 }
 
 state_computation::state_computation(computation * origin)

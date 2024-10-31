@@ -130,6 +130,11 @@ void apply_parallelization(syntax_tree const& ast);
  * Prints the optimization information
  */
     void print_optim(optimization_info optim);
+
+/**
+ * gets the optimization information str
+ */    
+    std::string get_optim_str(optimization_info optim);
 }
 
 #endif

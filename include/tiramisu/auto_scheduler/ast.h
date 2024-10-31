@@ -451,6 +451,11 @@ public:
     void print_node() const;
 
     /**
+     * Get the string representation of this node.
+     */
+    std::string get_node_str() const; 
+    
+    /**
      * Print the subtree of isl_states
     */
     void print_isl_states() const;
@@ -845,6 +850,16 @@ public:
      */
     void print_ast() const;
 
+    /**
+     * get the string representation of the AST.
+     */
+    std::string get_ast_str() const;
+    
+    /**
+     * Get a json of computations buffers mapping
+     */
+    std::string get_computations_buffers_mapping_json() const;
+    
     /**
      * prints the computations's accesses of this AST
     */

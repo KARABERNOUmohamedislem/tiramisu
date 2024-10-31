@@ -10,6 +10,7 @@ export EXECUTE_INITIAL_SCHED=0
 export EXECUTE_BEST_SCHED=1
 export TIRAMISU_ROOT=/absolute/path/to/Tiramisu
 
+export OPENAI_API_KEY="your_OpenAI_key"
 
 
 # Compile the autoscheduler
