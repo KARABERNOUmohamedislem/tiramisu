@@ -142,7 +142,7 @@ public:
     /**
      * Prompt the LLM and get the indices of candidates to keep in the beam
      */
-    virtual std::vector<int> prompt_llm(std::string initial_program_ast, std::string computations_buffers_json, std::vector<syntax_tree*> candidates);
+    virtual int prompt_llm(std::string initial_program_ast, std::string computations_buffers_json);
     /**
      * Searches for the best schedule and saves the explored schedules and their execution time
      *

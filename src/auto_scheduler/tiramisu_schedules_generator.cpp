@@ -931,7 +931,7 @@ std::vector<int> get_skew_params(int f_i, int f_j)
         return result;
 }
 
-std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(syntax_tree &ast)
+std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(syntax_tree &ast, int optim_index_to_explore)
 {
     //this method uses the AST custom schedule generator
 
@@ -959,7 +959,8 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     
     // To apply interchange, we pick all combinations of two iterators
     // in the shared loop levels.
-    if(explre_interchange){
+    if (explre_interchange && optim_index_to_explore == 1)
+    {
 
         for (int i = 0; i < shared_nodes.size(); ++i)
         {
@@ -1008,6 +1009,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
     }
 
     // Add reversal matriecs
+    if (optim_index_to_explore == 2){
     std::vector<tiramisu::computation *> involved_computations_reversal;
     // For shared nodes the list of involved computations is always the same.
     // that's only the case when we compute test shared loop levels only (not always the case).
@@ -1046,9 +1048,11 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
         new_ast->new_optims.push_back(optim_info);
         states.push_back(new_ast);
     }
+    }
     
     
     //  Add skweing
+    if (optim_index_to_explore == 3){
     ast.stage_isl_states();
 
     std::vector<tiramisu::computation *> involved_computations_skew;
@@ -1338,6 +1342,7 @@ std::vector<syntax_tree *> ml_model_schedules_generator::generate_matrices(synta
             ast.stage_isl_states();
         }
         ast.recover_isl_states();
+    }
     }
     // Removed 3d skewing until further tests
     // ast.stage_isl_states();

@@ -251,7 +251,7 @@ std::string get_optim_str(optimization_info optim)
     std::string optimization_str = "";
     switch(optim.type) {
         case optimization_type::FUSION:
-            optimization_str += "Fusion L" + std::to_string(optim.l0) + " " + optim.comps[0]->get_name() + " then " + optim.comps[1]->get_name();
+            optimization_str += "FUSION L" + std::to_string(optim.l0) + " " + optim.comps[0]->get_name() + " then " + optim.comps[1]->get_name();
             break;
 
         case optimization_type::SHIFTING:
@@ -263,17 +263,17 @@ std::string get_optim_str(optimization_info optim)
                 switch(optim.unimodular_transformation_type){
                         // Interchange
                         case 1:
-                            optimization_str += "LOOP INTERCHANGE L" + std::to_string(optim.l0) + " L" + std::to_string(optim.l1) + " { ";
+                            optimization_str += "INTERCHANGE L" + std::to_string(optim.l0) + " L" + std::to_string(optim.l1) + " { ";
                             break;
 
                         // Rversal
                         case 2:
-                            optimization_str += "LOOP REVERSAL L" + std::to_string(optim.l0) + " { ";
+                            optimization_str += "REVERSAL L" + std::to_string(optim.l0) + " { ";
                             break;
 
                         // Skewing
                         case 3:
-                            optimization_str += "SKEWING (" + std::to_string(optim.l0) + ", " + std::to_string(optim.l1) + ", " + std::to_string(optim.l2) + ", " + std::to_string(optim.l0_fact) + ", " + std::to_string(optim.l1_fact) + ", " + std::to_string(optim.l2_fact) + ", " + std::to_string(optim.l3_fact) + ", " + std::to_string(optim.l4_fact) + ", " + std::to_string(optim.l5_fact) + ", " + std::to_string(optim.l6_fact) + ", " + std::to_string(optim.l7_fact) + ", " + std::to_string(optim.l8_fact) + ") { ";
+                            optimization_str += "SKEWING L" + std::to_string(optim.l0) + " L" + std::to_string(optim.l1) + " L" + std::to_string(optim.l2) + " " + std::to_string(optim.l0_fact) + " " + std::to_string(optim.l1_fact) + " " + std::to_string(optim.l2_fact) + " " + std::to_string(optim.l3_fact) + " " + std::to_string(optim.l4_fact) + " " + std::to_string(optim.l5_fact) + " " + std::to_string(optim.l6_fact) + " " + std::to_string(optim.l7_fact) + " " + std::to_string(optim.l8_fact) + " { ";
                             break;
 
                     }
@@ -284,14 +284,14 @@ std::string get_optim_str(optimization_info optim)
             break;
 
         case optimization_type::INTERCHANGE:
-            optimization_str += "Interchange L" + std::to_string(optim.l0) + "  L" + std::to_string(optim.l1) + " { " ;
+            optimization_str += "INTERCHANGE L" + std::to_string(optim.l0) + "  L" + std::to_string(optim.l1) + " { ";
             for (auto comp:optim.comps)
                 optimization_str += comp->get_name() + ", ";
             optimization_str += "}";
             break;
 
         case optimization_type::TILING:
-            optimization_str += "Tiling L" + std::to_string(optim.l0) + " " + std::to_string(optim.l0_fact);
+            optimization_str += "TILING L" + std::to_string(optim.l0) + " " + std::to_string(optim.l0_fact);
             if (optim.nb_l > 1)
                 optimization_str += " L" + std::to_string(optim.l1) + " " + std::to_string(optim.l1_fact);
             if (optim.nb_l == 3)
@@ -303,7 +303,7 @@ std::string get_optim_str(optimization_info optim)
             break;
 
         case optimization_type::UNROLLING:
-            optimization_str += "Unrolling L" + std::to_string(optim.l0) + " " + std::to_string(optim.l0_fact);
+            optimization_str += "UNROLLING L" + std::to_string(optim.l0) + " " + std::to_string(optim.l0_fact);
             optimization_str += " { ";
             for (auto comp:optim.comps)
                 optimization_str += comp->get_name() + ", ";
@@ -311,7 +311,7 @@ std::string get_optim_str(optimization_info optim)
             break;
 
         case optimization_type::PARALLELIZE:
-            optimization_str += "Parallelize L" + std::to_string(optim.l0);
+            optimization_str += "PARALLELIZE L" + std::to_string(optim.l0);
             optimization_str += " { ";
             for (auto comp:optim.comps)
                 optimization_str += comp->get_name() + ", ";
@@ -319,7 +319,7 @@ std::string get_optim_str(optimization_info optim)
             break;
 
         case optimization_type::SKEWING:
-            optimization_str += "Skewing L" + std::to_string(optim.l0) + " " + std::to_string(optim.l0_fact) + " L" + std::to_string(optim.l1) + " " + std::to_string(optim.l1_fact);
+            optimization_str += "SKEWING L" + std::to_string(optim.l0) + " " + std::to_string(optim.l0_fact) + " L" + std::to_string(optim.l1) + " " + std::to_string(optim.l1_fact);
             optimization_str += " { ";
             for (auto comp:optim.comps)
                 optimization_str += comp->get_name() + ", ";

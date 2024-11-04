@@ -24,7 +24,7 @@ void beam_search::setup_llm_pipeline()
     pipe(inpipe);
     pipe(outpipe);
     std::string const &cmd_path = std::getenv("PYTHON_PATH");
-    std::vector<std::string> const &cmd_args = {TIRAMISU_ROOT  + "/tutorials/tutorial_autoscheduler/model/llm.py"};
+    std::vector<std::string> const &cmd_args = {TIRAMISU_ROOT  + "/tutorials/tutorial_autoscheduler/model/llm2.py"};
 
     pid = fork();
     if (pid == 0)
@@ -60,54 +60,19 @@ void beam_search::setup_llm_pipeline()
     llm_read = fdopen(inpipe[0], "r");
 }
 
-std::vector<int> beam_search::prompt_llm(std::string initial_program_ast, std::string computations_buffers_json, std::vector<syntax_tree*> candidates){
+int beam_search::prompt_llm(std::string initial_program_ast, std::string computations_buffers_json){ // , std::vector<syntax_tree*> candidates
     
-    if (candidates.size() == 0) return std::vector<int>();
-    std::string schedules_json = "{";
-    
-    for (int i = 0; i < candidates.size(); i++)
-    {  
-        schedules_json += "\"" + std::to_string(i) + "\" : { \"previous_optims\" : \"";
-        
-        for (optimization_info optim: candidates[i]->previous_optims)
-        {
-            if (optim.type != optimization_type::MATRIX || optim.unimodular_transformation_type != 0)
-            {
-                schedules_json += get_optim_str(optim) + ";";
-            }
-            
-        }
-        schedules_json += "\", \"new_optims\" : \"";
-        for (optimization_info optim: candidates[i]->new_optims)
-            if (optim.type != optimization_type::MATRIX || optim.unimodular_transformation_type != 0)
-            {
-                schedules_json += get_optim_str(optim) + ";";
-            }
-        
-        schedules_json += "\"},";
-      
-    }
-    schedules_json.pop_back();
-    schedules_json += "}\n";
-    
+
     // Send the necessary information for the prompt
     fputs(initial_program_ast.c_str(), llm_write);
     fputs(computations_buffers_json.c_str(), llm_write);
-    fputs(schedules_json.c_str(), llm_write);
     fflush(llm_write);
-    
-    // // Read the response from llm_read
-    int response;
-    std::vector<int> indices;
-    while (response != -1)
-    {
-        fscanf(llm_read, "%d", &response);
-        if (response == -1) break;
-        else indices.push_back(response);
-    }
 
-    // needs parsing
-    return indices;
+    // Read the response from llm_read
+    int response;
+    fscanf(llm_read, "%d", &response);
+
+    return response;
 }
     
 void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout ){
@@ -116,12 +81,6 @@ void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *
     exploration_queue.push(&ast);
     std::unordered_map<syntax_tree*, candidate_trace*> trace_map;
     
-    std::string initial_program_ast = ast.get_ast_str();
-    initial_program_ast = initial_program_ast + "\n"; // Adding line break to use it as an input to the python file
-    std::string computations_buffers_json = ast.get_computations_buffers_mapping_json();
-    std::vector<int> candidates_to_keep_indices;
-    std::vector<syntax_tree*> excluded_candidates;
-    bool keep_candidate;
     setup_llm_pipeline();
     
     while(!exploration_queue.empty()){
@@ -169,27 +128,11 @@ void beam_search::explore_schedules(syntax_tree &ast, std::vector<std::string> *
             return a->evaluation < b->evaluation;
         });
         
-        // Indices should start from 0
-        if (excluded_candidates.size() > 0) excluded_candidates.clear();
         
-        for (int i = beam_size; i < level_schedules.size(); i++)
-        {
-            excluded_candidates.push_back(level_schedules[i]);
-        }
-        candidates_to_keep_indices = prompt_llm(initial_program_ast, computations_buffers_json, excluded_candidates);
-        
-        // Keep beam_size first elements, plus the elements from the LLM
         for (int i = 0; i < level_schedules.size(); i++)
         {   
             if (i < beam_size){
                 exploration_queue.push(level_schedules[i]);
-            }
-            else {
-                keep_candidate = (std::find(candidates_to_keep_indices.begin(), candidates_to_keep_indices.end(), i-beam_size) != candidates_to_keep_indices.end());
-                
-                if (keep_candidate){
-                    exploration_queue.push(level_schedules[i]);
-                }
             }
         }
         std::cout << "\nBeam size : " << beam_size << "\nKept candidate (beam size + candidates from the LLM) : " << exploration_queue.size() << std::endl;
@@ -216,6 +159,20 @@ std::vector <  std::vector<int> > get_identity(int depth){
 std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std::vector<std::string> *schedules_annotations, candidate_trace *parent_trace, float schedule_timeout)
 {
         
+    std::string initial_program_ast = ast.get_ast_str();
+    initial_program_ast = initial_program_ast + "\n"; // Adding line break to use it as an input to the python file
+    std::string computations_buffers_json = ast.get_computations_buffers_mapping_json();
+    int optim_index_to_explore;
+    optim_index_to_explore = prompt_llm(initial_program_ast, computations_buffers_json);
+    
+    if (optim_index_to_explore == 4){
+        std::cout << "None" << std::endl;
+        ast.initialize_search_space_optimizations(DEFAULT_OPTIMIZATIONS_ORDER);
+        ast.search_state.current_index = 0;
+        ast.search_state.optimization_index = 0;
+        ast.ast_search_phase = search_phase::NON_UNIMODULAR;
+        return std::vector<syntax_tree*>();
+    }
     std::default_random_engine rand_generator;
     std::vector<syntax_tree*> children;
     // list of ASTs to be explored for next level 
@@ -256,7 +213,7 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
     while ((!ast.is_search_space_empty()))
     {
         // schedule generation based on generator_state attribute in the AST.
-        auto new_children = scheds_gen->generate_matrices(ast);
+        auto new_children = scheds_gen->generate_matrices(ast, optim_index_to_explore);
         for(auto& child:new_children)
             child->move_to_next_head();
         
@@ -268,6 +225,10 @@ std::vector<syntax_tree*> beam_search::search_save_matrix(syntax_tree& ast, std:
             ast.move_to_next_head();
             
             break;
+        }
+        else if (ast.search_state.is_current_optimization_fully_explored()) {
+            optim_index_to_explore = prompt_llm("\n", computations_buffers_json);
+            ast.move_to_next_head();
         }
         else
             ast.move_to_next_head();
